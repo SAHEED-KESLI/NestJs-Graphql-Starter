@@ -1,0 +1,119 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+  // output          = "./generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email        String         @unique
+  password     String
+  name         String
+  image        String?
+  manufacturer Manufacturer[]
+
+  otp            String?
+  otpExpiration  DateTime?
+  hashedJwtToken String?
+}
+
+model Store {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name       String   @unique
+  contact    String
+  locationId String   @unique
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  slug       String   @unique
+
+  manufacturerId String?
+  manufacturer   Manufacturer?  @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
+  Distribution   Distribution[]
+}
+
+model Distribution {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name        String
+  batchNumber String
+
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Manufacturer {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  ownerId    String
+  locationId String
+
+  businessName    String     @unique
+  brandStoreName  String
+  industry        Industry[] // Enum array
+  productCategory Json // Enum array
+  slug            String     @unique
+  brandImage      String
+
+  stores   Store[]
+  products Product[]
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  location Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name            String    @unique
+  imageUrl        String
+  description     String
+  retailPrice     String?
+  quantity        Int?
+  barCode         String?
+  batchNumber     String?
+  manufactureDate DateTime?
+  expiryDate      DateTime?
+
+  manufacturerId String
+  manufacturer   Manufacturer   @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
+  Distribution   Distribution[]
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fullAddress String
+  longitude   Float
+  latitude    Float
+  metaData    Json
+
+  manufacturer Manufacturer[]
+  store        Store?
+
+  @@index([latitude, longitude]) // Add an index for performance optimization
+}
+
+enum Industry {
+  OTC_PHARMACEUTICALS
+  CONSUMER_GOODS
+  BEAUTY_AND_COSMETICS
+}
